@@ -1,8 +1,11 @@
 cl = console.log
 HTTP.methods
   'removeFiles': (data) ->
-    cl data.DEL_FILE_LIST
-    fs.unlinkSync
+#    cl data.DEL_FILE_LIST
+
+#    data.DEL_FILE_LIST.forEach (path) ->
+#      cl path
+#    fs.unlinkSync ''
 #    return throw new Meteor.Error 'test error'
     return 'success'
 

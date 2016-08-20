@@ -39,11 +39,11 @@ Meteor.startup ->
   checkDir = ->
     files = fs.readdirSync(path)
     files = files.filter (file) ->
-      if file.substring file.length - 3, file.length is 'das' then true else false
-
+      if file.substring(file.length - 3, file.length) is 'das' then true else false
     files.forEach (file) ->
       try
         dasInfo = fs.readFileSync "#{path}/#{file}", 'utf-8'#, (err, str) ->
+#        cl dasInfo
         HTTP.post "#{mSettings.DMS_URL}/insertDAS",
           data:
             dasInfo: dasInfo
@@ -51,7 +51,8 @@ Meteor.startup ->
         , (err, rslt) ->
           if err  # file move to err dir
             cl err
-#            fs.rename "#{path}/#{file}", "#{path}/err/#{file}"
+#            #에러 파일은 따로 둬서 원인 파악
+            fs.rename "#{path}/#{file}", "#{path}/err/#{file}"
           else   # file remove
 #            fs.unlinkSync "#{path}/#{file}"
       catch err
