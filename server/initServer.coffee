@@ -2,55 +2,73 @@ cl = console.log
 future = require 'fibers/future'
 fiber = require 'fibers'
 fs = require 'fs'
-
+setting = null
 Meteor.startup ->
-  dms = DDP.connect mSettings.DMS_URL
+#  dms = DDP.connect mSettings.DMS_URL
+#
+#  while true    #ddp stream error에 대한 while 문의 timeout 반복 체크 테스트가 안됨.
+#    cl 'while??'
+#    #  dms에서 agent setting 부터 받아온다
+#    fut = new future()
+#    dms.call 'getAgentSetting', mSettings.AGENT_URL, (err, rslt) ->
+#      if err then cl err
+#      fut.return rslt
+#    setting = fut.wait()
+#    if setting? then break
+#    else Meteor._sleepForMs 5000
+#  cl 'end'
 
-  while true    #ddp stream error에 대한 while 문의 timeout 반복 체크 테스트가 안됨.
-    cl 'while??'
-    #  dms에서 agent setting 부터 받아온다
+  # setting이 있어야 구동
+  while !setting
     fut = new future()
-    dms.call 'getAgentSetting', mSettings.AGENT_URL, (err, rslt) ->
-      if err then cl err
-      fut.return rslt
+    HTTP.post "#{mSettings.DMS_URL}/getAgentSetting",
+      data: AGENT_URL: mSettings.AGENT_URL
+    , (err, rslt) ->
+      if err
+        cl err
+        fut.return null
+      else
+        setting = (JSON.parse rslt.content)
+        fut.return setting
     setting = fut.wait()
-    if setting? then break
-    else Meteor._sleepForMs 5000
-  cl 'end'
+    unless setting then Meteor._sleepForMs 10000
+#    if setting? then break;
+#    else Meteor._sleepForMs 1000
 
-
-  #setting이 있어야 구동
-  ### test data
-  {
-      "_id" : "nHQ2LXqtYFntnfDvt",
-      "Agent명" : "dasAgent",
-      "AGENT_URL" : "http://localhost:3000",
-      "파일삭제기능" : true,
-      "소멸정보전송기능" : true,
-      "소멸정보절대경로" : "~/data",
-      "서비스정보_id" : "oo48cjeTXPna6DK8J"
-  }
-  ###
-
+  path = setting.소멸정보절대경로
   checkDir = ->
-    path = setting.소멸정보절대경로
     files = fs.readdirSync(path)
-    files.forEach (file) ->
-  #    fut = new future()
-      dasInfo = fs.readFileSync "#{path}/#{file}", 'utf-8'#, (err, str) ->
-  #      fut.return str
+    files = files.filter (file) ->
+      if file.substring file.length - 3, file.length is 'das' then true else false
 
-  #    dasInfo = fut.wait()
-      dms.call 'insertDAS', dasInfo, mSettings.AGENT_URL, (err, rslt) ->
-        cl "!!!!!!!!!!!!!!!!!!!!!!!!!!##################################"
-        cl err or rslt
+    files.forEach (file) ->
+      try
+        dasInfo = fs.readFileSync "#{path}/#{file}", 'utf-8'#, (err, str) ->
+        HTTP.post "#{mSettings.DMS_URL}/insertDAS",
+          data:
+            dasInfo: dasInfo
+            AGENT_URL: mSettings.AGENT_URL
+        , (err, rslt) ->
+          if err  # file move to err dir
+            cl err
+#            fs.rename "#{path}/#{file}", "#{path}/err/#{file}"
+          else   # file remove
+#            fs.unlinkSync "#{path}/#{file}"
+      catch err
+        if err    # file move to err dir
+          cl err
+          # err dir create
+          fs.access "#{path}/err", fs.F_OK, (err) ->
+            if (errno = err?.errno)? and errno is -2  #no such file or directory
+              fs.mkdirSync "#{path}/err"
+            fs.rename "#{path}/#{file}", "#{path}/err/#{file}"
 
   checkDir()
   setInterval ->
     fiber ->
       checkDir()
     .run()
-  , 1000*3
+  , 3000
 
 
 
