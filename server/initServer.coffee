@@ -2,24 +2,23 @@ cl = console.log
 future = require 'fibers/future'
 fiber = require 'fibers'
 fs = require 'fs'
-setting = null
 Meteor.startup ->
 #  dms = DDP.connect mSettings.DMS_URL
 #
 #  while true    #ddp stream error에 대한 while 문의 timeout 반복 체크 테스트가 안됨.
 #    cl 'while??'
-#    #  dms에서 agent setting 부터 받아온다
+#    #  dms에서 agent mSettings.setting 부터 받아온다
 #    fut = new future()
 #    dms.call 'getAgentSetting', mSettings.AGENT_URL, (err, rslt) ->
 #      if err then cl err
 #      fut.return rslt
-#    setting = fut.wait()
-#    if setting? then break
+#    mSettings.setting = fut.wait()
+#    if mSettings.setting? then break
 #    else Meteor._sleepForMs 5000
 #  cl 'end'
 
   # setting이 있어야 구동
-  while !setting
+  while !mSettings.setting
     fut = new future()
     HTTP.post "#{mSettings.DMS_URL}/getAgentSetting",
       data: AGENT_URL: mSettings.AGENT_URL
@@ -28,14 +27,14 @@ Meteor.startup ->
         cl err
         fut.return null
       else
-        setting = (JSON.parse rslt.content)
-        fut.return setting
-    setting = fut.wait()
-    unless setting then Meteor._sleepForMs 10000
-#    if setting? then break;
+        mSettings.setting = (JSON.parse rslt.content)
+        fut.return mSettings.setting
+    mSettings.setting = fut.wait()
+    unless mSettings.setting then Meteor._sleepForMs 10000
+#    if mSettings.setting? then break;
 #    else Meteor._sleepForMs 1000
 
-  path = setting.소멸정보절대경로
+  path = mSettings.setting.소멸정보절대경로
   checkDir = ->
     files = fs.readdirSync(path)
     files = files.filter (file) ->
@@ -54,27 +53,30 @@ Meteor.startup ->
 #            #에러 파일은 따로 둬서 원인 파악
             fs.rename "#{path}/#{file}", "#{path}/err/#{file}"
           else   # file remove
-#            fs.unlinkSync "#{path}/#{file}"
+            fs.unlinkSync "#{path}/#{file}"
       catch err
         if err    # file move to err dir
           cl err
           # err dir create
-          fs.access "#{path}/err", fs.F_OK, (err) ->
-            if (errno = err?.errno)? and errno is -2  #no such file or directory
-              fs.mkdirSync "#{path}/err"
-            fs.rename "#{path}/#{file}", "#{path}/err/#{file}"
+          try
+            fs.access "#{path}/err", fs.F_OK, (err) ->
+              if (errno = err?.errno)? and errno is -2  #no such file or directory
+                fs.mkdirSync "#{path}/err"
+              fs.rename "#{path}/#{file}", "#{path}/err/#{file}"
+          catch err
+            cl err
 
   checkDir()
   setInterval ->
     fiber ->
       checkDir()
     .run()
-  , 3000
+  , 1000 * 5
 
 
 
   #dms.call 'insertDAS',
-  #  Agent명: setting.agent.Agent명
+  #  Agent명: mSettings.setting.agent.Agent명
   #  AGENT_URL: mSettings.AGENT_URL
   #  서비스_ID: 'SVC00001'    #파일에서 꺼냄
   #  게시판_ID: 'BRD00001'    #파일에서 꺼냄
@@ -90,10 +92,10 @@ Meteor.startup ->
   #  STATUS: 'success'   # success or err_msg / delete error, sql error
 
   #dms.call 'insertDAS',
-  #  Agent명: setting.agent.Agent명
+  #  Agent명: mSettings.setting.agent.Agent명
   #  AGENT_URL: mSettings.AGENT_URL
-  #  서비스_id: setting.service._id
-  #  서비스명: setting.service.서비스명
+  #  서비스_id: mSettings.setting.service._id
+  #  서비스명: mSettings.setting.service.서비스명
   #  REQ_DATE: new Date('2016-08-15') #'201608151231000'
   #  CUR_IP: '10.0.0.24'
   #  DEL_FILE_LIST: [
@@ -108,7 +110,7 @@ Meteor.startup ->
 
 
   #setInterval ->
-  #  path = setting.agent.소멸정보절대경로
+  #  path = mSettings.setting.agent.소멸정보절대경로
   #  files = fs.readdirSync(path)
   #  if files.length > 0
   #    file = files[0]

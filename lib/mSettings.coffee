@@ -1,6 +1,7 @@
 #both
 @mSettings =
   isTest: true
+  setting: null
 
 if Meteor.isServer
   _.extend mSettings,
