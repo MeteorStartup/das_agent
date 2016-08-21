@@ -18,6 +18,12 @@ Meteor.startup ->
 #  cl 'end'
 
   # setting이 있어야 구동
+  @mSettings = do ->
+    return obj =
+      DMS_URL: process?.env?._mSettings_DMS_URL
+      AGENT_URL: process?.env?._mSettings_AGENT_URL
+      setting: null
+  cl mSettings
   while !mSettings.setting
     fut = new future()
     HTTP.post "#{mSettings.DMS_URL}/getAgentSetting",
