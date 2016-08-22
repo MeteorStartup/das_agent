@@ -33,7 +33,7 @@ Meteor.startup ->
         cl err
         fut.return null
       else
-        mSettings.setting = (JSON.parse rslt.content)
+        cl mSettings.setting = (JSON.parse rslt.content)
         fut.return mSettings.setting
     mSettings.setting = fut.wait()
     unless mSettings.setting then Meteor._sleepForMs 10000
