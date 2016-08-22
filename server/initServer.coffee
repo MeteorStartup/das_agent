@@ -77,7 +77,7 @@ Meteor.startup ->
     fiber ->
       checkDir()
     .run()
-  , 1000 * 5
+  , 1000 * 1      #수정 시 동일 파일이 저장되려고 하는 것 방지
 
 
 
