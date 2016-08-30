@@ -56,8 +56,14 @@ Meteor.startup ->
         , (err, rslt) ->
           if err  # file move to err dir
             cl err
-#            #에러 파일은 따로 둬서 원인 파악
-            fs.rename "#{path}/#{file}", "#{path}/err/#{file}"
+            # err dir create
+            try
+              fs.access "#{path}/err", fs.F_OK, (err) ->
+                if (errno = err?.errno)? and errno is -2  #no such file or directory
+                  fs.mkdirSync "#{path}/err"
+                fs.rename "#{path}/#{file}", "#{path}/err/#{file}"
+            catch err
+              cl err
           else   # file remove
             fs.unlinkSync "#{path}/#{file}"
       catch err
