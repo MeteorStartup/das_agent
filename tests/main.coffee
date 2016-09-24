@@ -1,7 +1,7 @@
 cl = console.log
 fs = require 'fs'
 request = require 'sync-request'
-sleep = require 'sleep'
+#sleep = require 'sleep'
 express = require 'express'
 
 
@@ -21,7 +21,7 @@ while !mSettings.setting
     mSettings.setting = JSON.parse res.getBody('utf8')
   catch err
     cl err
-    sleep.sleep 1
+#    sleep.sleep 1
 #cl mSettings
 
 path = mSettings.setting.소멸정보절대경로
@@ -73,15 +73,15 @@ app = express()
 app.use express.bodyParser()
 app.post '/removeFiles', (req, res) ->
   data = req.body
+  res.type 'text/plain'
   try
     ## jwjin/1609240956 파일처리옵션 제거 (삭제온리)
     data.DEL_FILE_LIST.forEach (path) ->
       fs.unlinkSync path
+    res.send 'success'
   catch err
     cl err.message
-    return err.message
-  res.type 'text/plain'
-  res.send 'success'
+    res.send err.message
 
 app.listen process?.env?.PORT || 3000
 
